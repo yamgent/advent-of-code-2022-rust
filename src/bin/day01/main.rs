@@ -1,6 +1,6 @@
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
-fn p1(input: &str) -> String {
+fn get_all_elves_calories(input: &str) -> Vec<i32> {
     input
         .trim()
         .split("\n\n")
@@ -10,14 +10,21 @@ fn p1(input: &str) -> String {
                 .map(Result::unwrap)
                 .sum::<i32>()
         })
+        .collect()
+}
+
+fn p1(input: &str) -> String {
+    get_all_elves_calories(input)
+        .into_iter()
         .max()
         .unwrap()
         .to_string()
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut calories = get_all_elves_calories(input);
+    calories.sort();
+    calories.into_iter().rev().take(3).sum::<i32>().to_string()
 }
 
 fn main() {
@@ -43,12 +50,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "45000");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "203203");
     }
 }
