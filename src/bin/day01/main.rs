@@ -23,7 +23,7 @@ fn p1(input: &str) -> String {
 
 fn p2(input: &str) -> String {
     let mut calories = get_all_elves_calories(input);
-    calories.sort();
+    calories.sort_unstable();
     calories.into_iter().rev().take(3).sum::<i32>().to_string()
 }
 
