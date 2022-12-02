@@ -19,7 +19,7 @@ impl Shape {
 
     fn get_correct_shape(opponent: &Shape, outcome: &Outcome) -> Shape {
         match outcome {
-            Outcome::Tie => opponent.clone(),
+            Outcome::Tie => *opponent,
             Outcome::Win => match opponent {
                 Shape::Rock => Shape::Paper,
                 Shape::Paper => Shape::Scissors,
@@ -70,7 +70,7 @@ struct Play {
 
 impl Play {
     fn parse_p1(line: &str) -> Self {
-        let parts = line.split(" ").map(Shape::parse).collect::<Vec<_>>();
+        let parts = line.split(' ').map(Shape::parse).collect::<Vec<_>>();
 
         if parts.len() != 2 {
             panic!(
@@ -90,7 +90,7 @@ impl Play {
     }
 
     fn parse_p2(line: &str) -> Self {
-        let mut parts = line.split(" ");
+        let mut parts = line.split(' ');
 
         let opponent = Shape::parse(
             parts
