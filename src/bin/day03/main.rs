@@ -16,12 +16,9 @@ fn p1(input: &str) -> String {
         .trim()
         .lines()
         .map(|line| {
-            let count = line.chars().count();
-            let left = line.chars().take(count / 2).collect::<HashSet<_>>();
-            line.chars()
-                .skip(count / 2)
-                .find(|ch| left.contains(ch))
-                .unwrap()
+            let (left, right) = line.split_at(line.len() / 2);
+            let left = left.chars().collect::<HashSet<_>>();
+            right.chars().find(|ch| left.contains(ch)).unwrap()
         })
         .map(get_priority)
         .sum::<u32>()
@@ -39,7 +36,7 @@ fn p2(input: &str) -> String {
                 .cloned()
                 .collect::<HashSet<_>>()
                 .intersection(&c)
-                .next()
+                .exactly_one()
                 .unwrap()
         })
         .map(get_priority)
