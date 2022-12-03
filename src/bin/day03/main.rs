@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashSet;
 
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
@@ -29,8 +30,26 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    input
+        .trim()
+        .lines()
+        .tuples::<(_, _, _)>()
+        .map(|(a, b, c)| {
+            fn to_set(s: &str) -> HashSet<char> {
+                s.chars().collect::<HashSet<_>>()
+            }
+            get_priority(
+                *to_set(a)
+                    .intersection(&to_set(b))
+                    .cloned()
+                    .collect::<HashSet<_>>()
+                    .intersection(&to_set(c))
+                    .next()
+                    .unwrap(),
+            )
+        })
+        .sum::<u32>()
+        .to_string()
 }
 
 fn main() {
@@ -56,12 +75,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "70");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "2508");
     }
 }
