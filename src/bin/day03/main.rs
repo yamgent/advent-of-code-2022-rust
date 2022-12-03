@@ -18,13 +18,12 @@ fn p1(input: &str) -> String {
         .map(|line| {
             let count = line.chars().count();
             let left = line.chars().take(count / 2).collect::<HashSet<_>>();
-            let candidate = line
-                .chars()
+            line.chars()
                 .skip(count / 2)
-                .find(|ch| left.contains(&ch))
-                .unwrap();
-            get_priority(candidate)
+                .find(|ch| left.contains(ch))
+                .unwrap()
         })
+        .map(get_priority)
         .sum::<u32>()
         .to_string()
 }
@@ -33,21 +32,17 @@ fn p2(input: &str) -> String {
     input
         .trim()
         .lines()
+        .map(|line| line.chars().collect::<HashSet<_>>())
         .tuples::<(_, _, _)>()
         .map(|(a, b, c)| {
-            fn to_set(s: &str) -> HashSet<char> {
-                s.chars().collect::<HashSet<_>>()
-            }
-            get_priority(
-                *to_set(a)
-                    .intersection(&to_set(b))
-                    .cloned()
-                    .collect::<HashSet<_>>()
-                    .intersection(&to_set(c))
-                    .next()
-                    .unwrap(),
-            )
+            *a.intersection(&b)
+                .cloned()
+                .collect::<HashSet<_>>()
+                .intersection(&c)
+                .next()
+                .unwrap()
         })
+        .map(get_priority)
         .sum::<u32>()
         .to_string()
 }
