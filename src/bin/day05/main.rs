@@ -1,45 +1,78 @@
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 const ACTUAL_META: (usize, usize) = (9, 8);
 
-fn p1(input: &str, meta: &(usize, usize)) -> String {
-    let mut stacks = std::iter::repeat(vec![]).take(meta.0).collect::<Vec<_>>();
+struct TestCase {
+    stacks: Vec<Vec<char>>,
+    instructions: Vec<Instruction>,
+}
 
-    input
-        .lines()
-        .take(meta.1)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .for_each(|line| {
-            let mut line = line.chars();
-            stacks.iter_mut().for_each(|stack| {
-                let character = line.nth(1).unwrap();
-                line.next();
-                line.next();
+struct Instruction {
+    amount: usize,
+    source: usize,
+    destination: usize,
+}
 
-                if character != ' ' {
-                    stack.push(character);
-                }
+impl TestCase {
+    fn parse_input(input: &str, meta: &(usize, usize)) -> Self {
+        let mut stacks = std::iter::repeat(vec![]).take(meta.0).collect::<Vec<_>>();
+
+        input
+            .lines()
+            .take(meta.1)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .for_each(|line| {
+                let mut line = line.chars();
+                stacks.iter_mut().for_each(|stack| {
+                    let character = line.nth(1).unwrap();
+                    line.next();
+                    line.next();
+
+                    if character != ' ' {
+                        stack.push(character);
+                    }
+                });
             });
-        });
 
-    input
-        .trim()
-        .lines()
-        .skip(meta.1 + 2)
-        .map(|line| {
-            let mut parts = line.split_whitespace();
-            let amount = parts.nth(1).unwrap().parse().unwrap();
-            let source = parts.nth(1).unwrap().parse::<usize>().unwrap() - 1;
-            let destination = parts.nth(1).unwrap().parse::<usize>().unwrap() - 1;
-            (amount, source, destination)
-        })
-        .for_each(|(amount, source, destination)| {
+        Self {
+            stacks,
+            instructions: input
+                .trim()
+                .lines()
+                .skip(meta.1 + 2)
+                .map(|line| {
+                    let mut parts = line.split_whitespace();
+
+                    Instruction {
+                        amount: parts.nth(1).unwrap().parse().unwrap(),
+                        source: parts.nth(1).unwrap().parse::<usize>().unwrap() - 1,
+                        destination: parts.nth(1).unwrap().parse::<usize>().unwrap() - 1,
+                    }
+                })
+                .collect(),
+        }
+    }
+}
+
+fn p1(input: &str, meta: &(usize, usize)) -> String {
+    let TestCase {
+        mut stacks,
+        instructions,
+    } = TestCase::parse_input(input, meta);
+
+    instructions.into_iter().for_each(
+        |Instruction {
+             amount,
+             source,
+             destination,
+         }| {
             (0..amount).for_each(|_| {
                 let value = stacks[source].pop().unwrap();
                 stacks[destination].push(value);
             });
-        });
+        },
+    );
 
     stacks
         .into_iter()
@@ -48,8 +81,27 @@ fn p1(input: &str, meta: &(usize, usize)) -> String {
 }
 
 fn p2(input: &str, meta: &(usize, usize)) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let TestCase {
+        mut stacks,
+        instructions,
+    } = TestCase::parse_input(input, meta);
+
+    instructions.into_iter().for_each(
+        |Instruction {
+             amount,
+             source,
+             destination,
+         }| {
+            let remaining_amount = stacks[source].len() - amount;
+            let mut tail = stacks[source].split_off(remaining_amount);
+            stacks[destination].append(&mut tail);
+        },
+    );
+
+    stacks
+        .into_iter()
+        .map(|mut stack| stack.pop().unwrap())
+        .collect()
 }
 
 fn main() {
@@ -76,12 +128,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT, &SAMPLE_META), "");
+        assert_eq!(p2(SAMPLE_INPUT, &SAMPLE_META), "MCD");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT, &ACTUAL_META), "");
+        assert_eq!(p2(ACTUAL_INPUT, &ACTUAL_META), "VRQWPDSGP");
     }
 }
