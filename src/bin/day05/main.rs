@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
 struct TestCase {
@@ -15,14 +13,15 @@ struct Instruction {
 
 impl TestCase {
     fn parse_input(input: &str) -> Self {
-        let (total_height, floor_line) = input
-            .trim()
-            .lines()
-            .enumerate()
-            .find(|(_, line)| line.trim().starts_with('1'))
-            .unwrap();
+        let mut input = input.split("\n\n");
 
-        let total_stacks = floor_line
+        let start_state = input.next().unwrap();
+        let instructions = input.next().unwrap();
+
+        let total_stacks = start_state
+            .lines()
+            .last()
+            .unwrap()
             .split_whitespace()
             .last()
             .unwrap()
@@ -33,35 +32,27 @@ impl TestCase {
             .take(total_stacks)
             .collect::<Vec<_>>();
 
-        input
-            .lines()
-            .take(total_height)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .for_each(|line| {
-                line.chars()
-                    .chunks(4)
-                    .into_iter()
-                    .map(|mut s| s.nth(1).unwrap())
-                    .zip(stacks.iter_mut())
-                    .filter(|(character, _)| *character != ' ')
-                    .for_each(|(character, stack)| stack.push(character));
-            });
+        start_state.lines().rev().skip(1).for_each(|line| {
+            line.chars()
+                .skip(1)
+                .step_by(4)
+                .zip(stacks.iter_mut())
+                .filter(|(character, _)| *character != ' ')
+                .for_each(|(character, stack)| stack.push(character));
+        });
 
         Self {
             stacks,
-            instructions: input
+            instructions: instructions
                 .trim()
                 .lines()
-                .skip(total_height + 2)
                 .map(|line| {
-                    let mut parts = line.split_whitespace();
+                    let mut parts = line.split_whitespace().skip(1).step_by(2);
 
                     Instruction {
-                        amount: parts.nth(1).unwrap().parse().unwrap(),
-                        source: parts.nth(1).unwrap().parse::<usize>().unwrap() - 1,
-                        destination: parts.nth(1).unwrap().parse::<usize>().unwrap() - 1,
+                        amount: parts.next().unwrap().parse().unwrap(),
+                        source: parts.next().unwrap().parse::<usize>().unwrap() - 1,
+                        destination: parts.next().unwrap().parse::<usize>().unwrap() - 1,
                     }
                 })
                 .collect(),
