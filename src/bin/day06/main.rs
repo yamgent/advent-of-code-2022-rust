@@ -19,7 +19,8 @@ fn solve_naive(input: &str, distinct_count: usize) -> String {
         .to_string()
 }
 
-fn solve(input: &str, distinct_count: usize) -> String {
+#[allow(dead_code)]
+fn solve_improved(input: &str, distinct_count: usize) -> String {
     let mut last_seen = HashMap::new();
     let mut start = 0usize;
 
@@ -40,6 +41,25 @@ fn solve(input: &str, distinct_count: usize) -> String {
         .0
         + 1)
     .to_string()
+}
+
+fn solve(input: &str, distinct_count: usize) -> String {
+    // uses bitset to check distinct
+    // from: https://www.reddit.com/r/adventofcode/comments/zdw0u6/comment/iz4lb8u/?utm_source=reddit&utm_medium=web2x&context=3
+    (input
+        .trim()
+        .chars()
+        .collect::<Vec<_>>()
+        .windows(distinct_count)
+        .position(|w| {
+            w.iter()
+                .fold(0u32, |acc, ch| acc | 1 << (*ch as u32 - 'a' as u32))
+                .count_ones() as usize
+                == distinct_count
+        })
+        .unwrap()
+        + distinct_count)
+        .to_string()
 }
 
 fn p1(input: &str) -> String {
