@@ -41,7 +41,8 @@ fn solve_improved(input: &str, distinct_count: usize) -> String {
     .to_string()
 }
 
-fn solve(input: &str, distinct_count: usize) -> String {
+#[allow(dead_code)]
+fn solve_bitset(input: &str, distinct_count: usize) -> String {
     // uses bitset to check distinct
     // from: https://www.reddit.com/r/adventofcode/comments/zdw0u6/comment/iz4lb8u/?utm_source=reddit&utm_medium=web2x&context=3
     (input
@@ -58,6 +59,38 @@ fn solve(input: &str, distinct_count: usize) -> String {
         .unwrap()
         + distinct_count)
         .to_string()
+}
+
+fn solve(input: &str, distinct_count: usize) -> String {
+    // use "rolling" mask
+    fn toggle(acc: u32, ch: char) -> u32 {
+        acc ^ (1 << (ch as u32 - 'a' as u32))
+    }
+    fn toggle2(acc: u32, ch1: char, ch2: char) -> u32 {
+        toggle(toggle(acc, ch1), ch2)
+    }
+    fn all_distinct(mask: u32, distinct_count: usize) -> bool {
+        mask.count_ones() as usize == distinct_count
+    }
+
+    let mut mask = input.trim().chars().take(distinct_count).fold(0u32, toggle);
+
+    if all_distinct(mask, distinct_count) {
+        distinct_count.to_string()
+    } else {
+        (distinct_count
+            + 1
+            + input
+                .trim()
+                .chars()
+                .zip(input.trim().chars().skip(distinct_count))
+                .position(|(old, new)| {
+                    mask = toggle2(mask, old, new);
+                    all_distinct(mask, distinct_count)
+                })
+                .unwrap())
+        .to_string()
+    }
 }
 
 fn p1(input: &str) -> String {
