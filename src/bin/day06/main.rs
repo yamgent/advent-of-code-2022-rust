@@ -1,24 +1,27 @@
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
-fn p1(input: &str) -> String {
+fn solve(input: &str, distinct_count: usize) -> String {
     (input
         .trim()
         .chars()
         .collect::<Vec<_>>()
-        .windows(4)
+        .windows(distinct_count)
         .enumerate()
         .find(|(_, values)| {
             (0..values.len()).all(|i| ((i + 1)..values.len()).all(|j| values[i] != values[j]))
         })
         .unwrap()
         .0
-        + 4)
-    .to_string()
+        + distinct_count)
+        .to_string()
+}
+
+fn p1(input: &str) -> String {
+    solve(input, 4)
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    solve(input, 14)
 }
 
 fn main() {
@@ -29,8 +32,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const SAMPLE_INPUT: &str = include_str!("./sample.txt");
 
     #[test]
     fn test_p1_sample() {
@@ -48,12 +49,15 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2("mjqjpqmgbljsphdztnvjfqwrcgsmlb"), "19");
+        assert_eq!(p2("bvwbjplbgvbhsrlpgdmjqwftvncz"), "23");
+        assert_eq!(p2("nppdvjthqldpwncqszvftbrmjlhg"), "23");
+        assert_eq!(p2("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg"), "29");
+        assert_eq!(p2("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw"), "26");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "3716");
     }
 }
