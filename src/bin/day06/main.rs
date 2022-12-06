@@ -9,12 +9,10 @@ fn solve_naive(input: &str, distinct_count: usize) -> String {
         .chars()
         .collect::<Vec<_>>()
         .windows(distinct_count)
-        .enumerate()
-        .find(|(_, values)| {
+        .position(|values| {
             (0..values.len()).all(|i| ((i + 1)..values.len()).all(|j| values[i] != values[j]))
         })
         .unwrap()
-        .0
         + distinct_count)
         .to_string()
 }
