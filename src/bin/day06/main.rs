@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
-fn solve(input: &str, distinct_count: usize) -> String {
+#[allow(dead_code)]
+fn solve_naive(input: &str, distinct_count: usize) -> String {
     (input
         .trim()
         .chars()
@@ -14,6 +17,29 @@ fn solve(input: &str, distinct_count: usize) -> String {
         .0
         + distinct_count)
         .to_string()
+}
+
+fn solve(input: &str, distinct_count: usize) -> String {
+    let mut last_seen = HashMap::new();
+    let mut start = 0usize;
+
+    (input
+        .trim()
+        .chars()
+        .enumerate()
+        .find(|(index, ch)| {
+            if let Some(pos) = last_seen.get(ch) {
+                if *pos >= start {
+                    start = *pos + 1;
+                }
+            }
+            last_seen.insert(*ch, *index);
+            index - start + 1 == distinct_count
+        })
+        .unwrap()
+        .0
+        + 1)
+    .to_string()
 }
 
 fn p1(input: &str) -> String {
