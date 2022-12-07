@@ -8,6 +8,8 @@ struct DirId(usize);
 
 #[derive(Debug)]
 struct File<'a> {
+    // we never really use name to compute our answer, but it is useful for debugging
+    #[allow(dead_code)]
     name: &'a str,
     size: usize,
 }
@@ -44,7 +46,7 @@ impl<'a> Filesystem<'a> {
         self.files.push(file);
 
         let id = FileId(self.files.len() - 1);
-        self.dirs.iter_mut().nth(parent.0).unwrap().files.push(id);
+        self.dirs.get_mut(parent.0).unwrap().files.push(id);
         id
     }
 
@@ -52,7 +54,7 @@ impl<'a> Filesystem<'a> {
         self.dirs.push(dir);
 
         let id = DirId(self.dirs.len() - 1);
-        self.dirs.iter_mut().nth(parent.0).unwrap().subdirs.push(id);
+        self.dirs.get_mut(parent.0).unwrap().subdirs.push(id);
         id
     }
 
@@ -61,18 +63,17 @@ impl<'a> Filesystem<'a> {
     }
 
     fn parent(&self, current: DirId) -> DirId {
-        self.dirs.iter().nth(current.0).unwrap().parent
+        self.dirs.get(current.0).unwrap().parent
     }
 
     fn child(&self, current: DirId, name: &str) -> DirId {
         *self
             .dirs
-            .iter()
-            .nth(current.0)
+            .get(current.0)
             .unwrap()
             .subdirs
             .iter()
-            .find(|dirid| self.dirs.iter().nth(dirid.0).unwrap().name == name)
+            .find(|dirid| self.dirs.get(dirid.0).unwrap().name == name)
             .unwrap()
     }
 
@@ -87,8 +88,7 @@ impl<'a> Filesystem<'a> {
                 None => {
                     let subdirs_size = fs
                         .dirs
-                        .iter()
-                        .nth(dir_id.0)
+                        .get(dir_id.0)
                         .unwrap()
                         .subdirs
                         .iter()
@@ -96,12 +96,11 @@ impl<'a> Filesystem<'a> {
                         .sum::<usize>();
                     let files_size = fs
                         .dirs
-                        .iter()
-                        .nth(dir_id.0)
+                        .get(dir_id.0)
                         .unwrap()
                         .files
                         .iter()
-                        .map(|file_id| fs.files.iter().nth(file_id.0).unwrap().size)
+                        .map(|file_id| fs.files.get(file_id.0).unwrap().size)
                         .sum::<usize>();
                     result[dir_id.0] = Some(subdirs_size + files_size);
                     subdirs_size + files_size
@@ -109,7 +108,7 @@ impl<'a> Filesystem<'a> {
             }
         }
 
-        traverse(&self, &mut result, self.root());
+        traverse(self, &mut result, self.root());
         result.iter().map(|v| v.unwrap()).collect()
     }
 }
@@ -134,7 +133,7 @@ fn parse_input(input: &str) -> Filesystem {
         .trim()
         .lines()
         .fold(vec![], |mut acc, line| {
-            if line.starts_with("$") {
+            if line.starts_with('$') {
                 acc.push(vec![line]);
             } else {
                 acc.iter_mut().last().unwrap().push(line);
