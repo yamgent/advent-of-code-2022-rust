@@ -136,32 +136,27 @@ impl<'a> Filesystem<'a> {
     }
 
     fn get_dirs_filesizes(&self) -> Vec<usize> {
-        let mut result = std::iter::repeat(None)
+        let mut result = std::iter::repeat(0usize)
             .take(self.dirs.len())
             .collect::<Vec<_>>();
 
-        fn traverse(fs: &Filesystem, result: &mut Vec<Option<usize>>, dir_id: DirId) -> usize {
-            match result[dir_id.0] {
-                Some(size) => size,
-                None => {
-                    let subdirs_size = fs.dirs[dir_id.0]
-                        .subdirs
-                        .iter()
-                        .map(|dir_id| traverse(fs, result, *dir_id))
-                        .sum::<usize>();
-                    let files_size = fs.dirs[dir_id.0]
-                        .files
-                        .iter()
-                        .map(|file_id| fs.files[file_id.0].size)
-                        .sum::<usize>();
-                    result[dir_id.0] = Some(subdirs_size + files_size);
-                    subdirs_size + files_size
-                }
-            }
+        fn traverse(fs: &Filesystem, result: &mut Vec<usize>, dir_id: DirId) -> usize {
+            let subdirs_size = fs.dirs[dir_id.0]
+                .subdirs
+                .iter()
+                .map(|dir_id| traverse(fs, result, *dir_id))
+                .sum::<usize>();
+            let files_size = fs.dirs[dir_id.0]
+                .files
+                .iter()
+                .map(|file_id| fs.files[file_id.0].size)
+                .sum::<usize>();
+            result[dir_id.0] = subdirs_size + files_size;
+            subdirs_size + files_size
         }
 
         traverse(self, &mut result, self.root());
-        result.into_iter().flatten().collect()
+        result
     }
 }
 
