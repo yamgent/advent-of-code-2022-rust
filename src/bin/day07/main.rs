@@ -28,91 +28,6 @@ struct Dir<'a> {
     subdirs: Vec<DirId>,
 }
 
-#[derive(Debug)]
-struct Filesystem<'a> {
-    files: Vec<File<'a>>,
-    dirs: Vec<Dir<'a>>,
-}
-
-impl<'a> Filesystem<'a> {
-    fn new() -> Self {
-        Self {
-            files: vec![],
-            dirs: vec![Dir::new("", DirId(0))],
-        }
-    }
-
-    fn add_file(&mut self, parent: DirId, file: File<'a>) -> FileId {
-        self.files.push(file);
-
-        let id = FileId(self.files.len() - 1);
-        self.dirs.get_mut(parent.0).unwrap().files.push(id);
-        id
-    }
-
-    fn add_dir(&mut self, parent: DirId, dir: Dir<'a>) -> DirId {
-        self.dirs.push(dir);
-
-        let id = DirId(self.dirs.len() - 1);
-        self.dirs.get_mut(parent.0).unwrap().subdirs.push(id);
-        id
-    }
-
-    fn root(&self) -> DirId {
-        DirId(0)
-    }
-
-    fn parent(&self, current: DirId) -> DirId {
-        self.dirs.get(current.0).unwrap().parent
-    }
-
-    fn child(&self, current: DirId, name: &str) -> DirId {
-        *self
-            .dirs
-            .get(current.0)
-            .unwrap()
-            .subdirs
-            .iter()
-            .find(|dirid| self.dirs.get(dirid.0).unwrap().name == name)
-            .unwrap()
-    }
-
-    fn get_dir_filesizes(&self) -> Vec<usize> {
-        let mut result = std::iter::repeat(None)
-            .take(self.dirs.len())
-            .collect::<Vec<_>>();
-
-        fn traverse(fs: &Filesystem, result: &mut Vec<Option<usize>>, dir_id: DirId) -> usize {
-            match result[dir_id.0] {
-                Some(size) => size,
-                None => {
-                    let subdirs_size = fs
-                        .dirs
-                        .get(dir_id.0)
-                        .unwrap()
-                        .subdirs
-                        .iter()
-                        .map(|dir_id| traverse(fs, result, *dir_id))
-                        .sum::<usize>();
-                    let files_size = fs
-                        .dirs
-                        .get(dir_id.0)
-                        .unwrap()
-                        .files
-                        .iter()
-                        .map(|file_id| fs.files.get(file_id.0).unwrap().size)
-                        .sum::<usize>();
-                    result[dir_id.0] = Some(subdirs_size + files_size);
-                    subdirs_size + files_size
-                }
-            }
-        }
-
-        traverse(self, &mut result, self.root());
-        result.iter().map(|v| v.unwrap()).collect()
-    }
-}
-
 impl<'a> Dir<'a> {
     fn new(name: &'a str, parent: DirId) -> Self {
         Self {
@@ -124,66 +39,145 @@ impl<'a> Dir<'a> {
     }
 }
 
-fn parse_input(input: &str) -> Filesystem {
-    let mut fs = Filesystem::new();
+#[derive(Debug)]
+struct Filesystem<'a> {
+    files: Vec<File<'a>>,
+    dirs: Vec<Dir<'a>>,
+}
 
-    let mut current = fs.root();
+impl<'a> Filesystem<'a> {
+    fn from_input(input: &'a str) -> Self {
+        let mut fs = Filesystem {
+            files: vec![],
+            dirs: vec![Dir::new("", DirId(0))],
+        };
 
-    input
-        .trim()
-        .lines()
-        .fold(vec![], |mut acc, line| {
-            if line.starts_with('$') {
-                acc.push(vec![line]);
-            } else {
-                acc.iter_mut().last().unwrap().push(line);
-            }
-            acc
-        })
-        .into_iter()
-        .for_each(|content| match content[0] {
-            "$ cd /" => {
-                current = fs.root();
-            }
-            "$ cd .." => {
-                current = fs.parent(current);
-            }
-            "$ ls" => {
-                content.iter().skip(1).for_each(|line| {
-                    if line.starts_with("dir") {
-                        let dirname = &line[4..];
-                        fs.add_dir(current, Dir::new(dirname, current));
-                    } else {
-                        let (size, name) = line.split_once(' ').unwrap();
-                        fs.add_file(current, File::new(name, size.parse::<usize>().unwrap()));
-                    }
-                });
-            }
-            _ => {
-                if content[0].starts_with("$ cd") {
-                    let dirname = &content[0][5..];
-                    current = fs.child(current, dirname);
+        let mut current = fs.root();
+
+        input
+            .trim()
+            .lines()
+            .fold(vec![], |mut acc, line| {
+                if line.starts_with('$') {
+                    acc.push(vec![line]);
                 } else {
-                    panic!("Unknown instruction {}", content[0]);
+                    acc.iter_mut().last().unwrap().push(line);
+                }
+                acc
+            })
+            .into_iter()
+            .for_each(|section| {
+                let (command, body) = section.split_at(1);
+                let command = command[0];
+                match command {
+                    "$ cd /" => {
+                        current = fs.root();
+                    }
+                    "$ cd .." => {
+                        current = fs.parent(current);
+                    }
+                    "$ ls" => {
+                        body.iter().for_each(|line| {
+                            if line.starts_with("dir") {
+                                let dirname = &line[4..];
+                                fs.add_dir(current, Dir::new(dirname, current));
+                            } else {
+                                let (size, name) = line.split_once(' ').unwrap();
+                                fs.add_file(
+                                    current,
+                                    File::new(name, size.parse::<usize>().unwrap()),
+                                );
+                            }
+                        });
+                    }
+                    _ => {
+                        if command.starts_with("$ cd") {
+                            let dirname = &command[5..];
+                            current = fs.child_dir(current, dirname);
+                        } else {
+                            panic!("Unknown instruction {}", command);
+                        }
+                    }
+                }
+            });
+        fs
+    }
+
+    fn add_file(&mut self, parent: DirId, file: File<'a>) -> FileId {
+        self.files.push(file);
+
+        let id = FileId(self.files.len() - 1);
+        self.dirs[parent.0].files.push(id);
+        id
+    }
+
+    fn add_dir(&mut self, parent: DirId, dir: Dir<'a>) -> DirId {
+        self.dirs.push(dir);
+
+        let id = DirId(self.dirs.len() - 1);
+        self.dirs[parent.0].subdirs.push(id);
+        id
+    }
+
+    fn root(&self) -> DirId {
+        DirId(0)
+    }
+
+    fn parent(&self, current: DirId) -> DirId {
+        self.dirs[current.0].parent
+    }
+
+    fn child_dir(&self, current: DirId, name: &str) -> DirId {
+        *self.dirs[current.0]
+            .subdirs
+            .iter()
+            .find(|dirid| self.dirs[dirid.0].name == name)
+            .unwrap()
+    }
+
+    fn get_dirs_filesizes(&self) -> Vec<usize> {
+        let mut result = std::iter::repeat(None)
+            .take(self.dirs.len())
+            .collect::<Vec<_>>();
+
+        fn traverse(fs: &Filesystem, result: &mut Vec<Option<usize>>, dir_id: DirId) -> usize {
+            match result[dir_id.0] {
+                Some(size) => size,
+                None => {
+                    let subdirs_size = fs.dirs[dir_id.0]
+                        .subdirs
+                        .iter()
+                        .map(|dir_id| traverse(fs, result, *dir_id))
+                        .sum::<usize>();
+                    let files_size = fs.dirs[dir_id.0]
+                        .files
+                        .iter()
+                        .map(|file_id| fs.files[file_id.0].size)
+                        .sum::<usize>();
+                    result[dir_id.0] = Some(subdirs_size + files_size);
+                    subdirs_size + files_size
                 }
             }
-        });
-    fs
+        }
+
+        traverse(self, &mut result, self.root());
+        result.into_iter().flatten().collect()
+    }
 }
 
 fn p1(input: &str) -> String {
-    let fs = parse_input(input);
+    let fs = Filesystem::from_input(input);
 
-    fs.get_dir_filesizes()
-        .iter()
-        .filter(|v| **v <= 100000)
+    fs.get_dirs_filesizes()
+        .into_iter()
+        .filter(|v| *v <= 100_000)
         .sum::<usize>()
         .to_string()
 }
 
 fn p2(input: &str) -> String {
-    let fs = parse_input(input);
-    let mut sizes = fs.get_dir_filesizes();
+    let fs = Filesystem::from_input(input);
+    let mut sizes = fs.get_dirs_filesizes();
     let used = sizes[0];
     sizes.sort();
     sizes
