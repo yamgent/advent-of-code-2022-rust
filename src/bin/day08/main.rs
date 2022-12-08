@@ -27,6 +27,7 @@ fn p1(input: &str) -> String {
         .zip(visible.iter_mut())
         .for_each(|(grid_row, visible_row)| {
             let mut edge = -1;
+
             grid_row
                 .iter()
                 .zip(visible_row.iter_mut())
@@ -57,8 +58,9 @@ fn p1(input: &str) -> String {
         grid.iter()
             .zip(visible.iter_mut())
             .for_each(|(grid_row, visible_row)| {
-                let grid = grid_row.iter().nth(col).unwrap();
-                let visible = visible_row.iter_mut().nth(col).unwrap();
+                let grid = grid_row.get(col).unwrap();
+                let visible = visible_row.get_mut(col).unwrap();
+
                 if *grid > edge {
                     edge = *grid;
                     *visible = true;
@@ -71,8 +73,9 @@ fn p1(input: &str) -> String {
             .zip(visible.iter_mut())
             .rev()
             .for_each(|(grid_row, visible_row)| {
-                let grid = grid_row.iter().nth(col).unwrap();
-                let visible = visible_row.iter_mut().nth(col).unwrap();
+                let grid = grid_row.get(col).unwrap();
+                let visible = visible_row.get_mut(col).unwrap();
+
                 if *grid > edge {
                     edge = *grid;
                     *visible = true;
@@ -144,10 +147,10 @@ fn p2(input: &str) -> String {
                     directions
                         .iter()
                         .map(|dir| {
-                            TraverseIter::traverse(&pos, &dir, &max)
+                            TraverseIter::traverse(&pos, dir, &max)
                                 .position(|pos| grid[pos.0][pos.1] >= grid[r][c])
                                 .map(|v| v + 1)
-                                .unwrap_or_else(|| TraverseIter::traverse(&pos, &dir, &max).count())
+                                .unwrap_or_else(|| TraverseIter::traverse(&pos, dir, &max).count())
                                 as u32
                         })
                         .product::<u32>()
