@@ -56,11 +56,9 @@ fn p2(input: &str) -> String {
         let count = count.parse::<usize>().unwrap();
 
         (0..count).into_iter().for_each(|_| {
-            let head = move_head(&body[0], dir);
-            body = body.iter().skip(1).fold(vec![head], |mut acc, body_part| {
-                let body_part = update_tail(acc.iter().last().unwrap(), body_part);
-                acc.push(body_part);
-                acc
+            body[0] = move_head(&body[0], dir);
+            (1..body.len()).into_iter().for_each(|i| {
+                body[i] = update_tail(&body[i - 1], &body[i]);
             });
             visited.insert(*body.iter().last().unwrap());
         });
