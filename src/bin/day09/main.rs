@@ -22,7 +22,7 @@ fn move_head(head: &(i32, i32), dir: &str) -> (i32, i32) {
 
 fn update_tail(head: &(i32, i32), tail: &(i32, i32)) -> (i32, i32) {
     if (head.0 - tail.0).abs() <= 1 && (head.1 - tail.1).abs() <= 1 {
-        tail.clone()
+        *tail
     } else {
         let diff = (normalize(head.0 - tail.0), normalize(head.1 - tail.1));
         (tail.0 + diff.0, tail.1 + diff.1)
