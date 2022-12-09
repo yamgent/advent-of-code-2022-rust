@@ -10,12 +10,23 @@ fn normalize(value: i32) -> i32 {
     }
 }
 
-fn update_tail(head: &(i32, i32), tail: &mut (i32, i32)) {
-    if (head.0 - tail.0).abs() <= 1 && (head.1 - tail.1).abs() <= 1 {
-        return;
+fn move_head(head: &(i32, i32), dir: &str) -> (i32, i32) {
+    match dir {
+        "L" => (head.0 - 1, head.1),
+        "R" => (head.0 + 1, head.1),
+        "U" => (head.0, head.1 - 1),
+        "D" => (head.0, head.1 + 1),
+        _ => panic!("Unknown direction {}", dir),
     }
-    let diff = (normalize(head.0 - tail.0), normalize(head.1 - tail.1));
-    *tail = (tail.0 + diff.0, tail.1 + diff.1);
+}
+
+fn update_tail(head: &(i32, i32), tail: &(i32, i32)) -> (i32, i32) {
+    if (head.0 - tail.0).abs() <= 1 && (head.1 - tail.1).abs() <= 1 {
+        tail.clone()
+    } else {
+        let diff = (normalize(head.0 - tail.0), normalize(head.1 - tail.1));
+        (tail.0 + diff.0, tail.1 + diff.1)
+    }
 }
 
 fn p1(input: &str) -> String {
@@ -28,23 +39,8 @@ fn p1(input: &str) -> String {
         let count = count.parse::<usize>().unwrap();
 
         (0..count).into_iter().for_each(|_| {
-            match dir {
-                "L" => {
-                    head.0 -= 1;
-                }
-                "R" => {
-                    head.0 += 1;
-                }
-                "U" => {
-                    head.1 -= 1;
-                }
-                "D" => {
-                    head.1 += 1;
-                }
-                _ => panic!("Unknown direction {}", dir),
-            }
-
-            update_tail(&head, &mut tail);
+            head = move_head(&head, dir);
+            tail = update_tail(&head, &tail);
             visited.insert(tail);
         });
     });
@@ -52,8 +48,24 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut visited = HashSet::from([(0, 0)]);
+    let mut body = std::iter::repeat((0, 0)).take(10).collect::<Vec<_>>();
+
+    input.trim().lines().for_each(|line| {
+        let (dir, count) = line.split_once(' ').unwrap();
+        let count = count.parse::<usize>().unwrap();
+
+        (0..count).into_iter().for_each(|_| {
+            let head = move_head(&body[0], dir);
+            body = body.iter().skip(1).fold(vec![head], |mut acc, body_part| {
+                let body_part = update_tail(acc.iter().last().unwrap(), body_part);
+                acc.push(body_part);
+                acc
+            });
+            visited.insert(*body.iter().last().unwrap());
+        });
+    });
+    visited.len().to_string()
 }
 
 fn main() {
@@ -79,12 +91,24 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "1");
+        assert_eq!(
+            p2(r"
+R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20
+"),
+            "36"
+        );
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "2511");
     }
 }
