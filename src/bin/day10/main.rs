@@ -32,14 +32,17 @@ impl Cpu {
     }
 
     fn run(&mut self, instruction: &Instruction) {
+        self.cycle = self.get_instruction_cycle_range(instruction).1 + 1;
+
+        if let Instruction::Addx(value) = instruction {
+            self.x += value;
+        }
+    }
+
+    fn get_instruction_cycle_range(&self, instruction: &Instruction) -> (usize, usize) {
         match instruction {
-            Instruction::Noop => {
-                self.cycle += 1;
-            }
-            Instruction::Addx(value) => {
-                self.cycle += 2;
-                self.x += value;
-            }
+            Instruction::Noop => (self.cycle, self.cycle),
+            Instruction::Addx(..) => (self.cycle, self.cycle + 1),
         }
     }
 }
@@ -54,12 +57,7 @@ fn p1(input: &str) -> String {
             break;
         }
 
-        let cycle_before_instruction_ends = match instruction {
-            Instruction::Noop => cpu.cycle,
-            Instruction::Addx(..) => cpu.cycle + 1,
-        };
-
-        if cycle_before_instruction_ends >= *cycles_left.iter().last().unwrap() {
+        if cpu.get_instruction_cycle_range(&instruction).1 >= *cycles_left.iter().last().unwrap() {
             result += cycles_left.pop().unwrap() as i32 * cpu.x;
         }
 
@@ -69,29 +67,37 @@ fn p1(input: &str) -> String {
     result.to_string()
 }
 
+const SCREEN_WIDTH: usize = 40;
+const SCREEN_HEIGHT: usize = 6;
+const SCREEN_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT;
+
 fn p2(input: &str) -> String {
     let mut cpu = Cpu::new();
-    let mut screen = std::iter::repeat('.').take(240).collect::<Vec<_>>();
+    let mut screen = std::iter::repeat(
+        std::iter::repeat('.')
+            .take(SCREEN_WIDTH)
+            .collect::<Vec<_>>(),
+    )
+    .take(SCREEN_HEIGHT)
+    .collect::<Vec<_>>();
 
     for instruction in input.trim().lines().map(Instruction::parse) {
-        if cpu.cycle > screen.len() {
+        if cpu.cycle > SCREEN_SIZE {
             break;
         }
 
-        let cycle_before_instruction_ends = match instruction {
-            Instruction::Noop => cpu.cycle,
-            Instruction::Addx(..) => cpu.cycle + 1,
-        };
+        let range = cpu.get_instruction_cycle_range(&instruction);
 
-        (cpu.cycle..(cycle_before_instruction_ends + 1)).for_each(|cycle| {
-            if cycle > screen.len() {
+        (range.0..(range.1 + 1)).for_each(|cycle| {
+            if cycle > SCREEN_SIZE {
                 return;
             }
 
-            let pos = ((cycle - 1) % 40) as i32;
+            let row = (cycle - 1) / SCREEN_WIDTH;
+            let col = (cycle - 1) % SCREEN_WIDTH;
 
-            if (pos - cpu.x).abs() <= 1 {
-                screen[cycle - 1] = '#';
+            if (col as i32 - cpu.x).abs() <= 1 {
+                screen[row][col] = '#';
             }
         });
 
@@ -99,7 +105,7 @@ fn p2(input: &str) -> String {
     }
 
     screen
-        .chunks(40)
+        .into_iter()
         .map(|line| line.iter().collect::<String>())
         .collect::<Vec<_>>()
         .join("\n")
