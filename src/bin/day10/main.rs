@@ -1,5 +1,6 @@
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
+#[derive(Debug)]
 enum Instruction {
     Addx(i32),
     Noop,
@@ -19,6 +20,7 @@ impl Instruction {
     }
 }
 
+#[derive(Debug)]
 struct Cpu {
     x: i32,
     cycle: usize,
@@ -68,8 +70,39 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut cpu = Cpu::new();
+    let mut screen = std::iter::repeat('.').take(240).collect::<Vec<_>>();
+
+    for instruction in input.trim().lines().map(Instruction::parse) {
+        if cpu.cycle > screen.len() {
+            break;
+        }
+
+        let cycle_before_instruction_ends = match instruction {
+            Instruction::Noop => cpu.cycle,
+            Instruction::Addx(..) => cpu.cycle + 1,
+        };
+
+        (cpu.cycle..(cycle_before_instruction_ends + 1)).for_each(|cycle| {
+            if cycle > screen.len() {
+                return;
+            }
+
+            let pos = ((cycle - 1) % 40) as i32;
+
+            if (pos - cpu.x).abs() <= 1 {
+                screen[cycle - 1] = '#';
+            }
+        });
+
+        cpu.run(&instruction);
+    }
+
+    screen
+        .chunks(40)
+        .map(|line| line.iter().collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn main() {
@@ -95,12 +128,33 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(
+            p2(SAMPLE_INPUT),
+            r"
+##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######.....
+"
+            .trim()
+        );
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(
+            p2(ACTUAL_INPUT),
+            r"
+###..####.#..#.#....###...##..#..#..##..
+#..#....#.#..#.#....#..#.#..#.#..#.#..#.
+#..#...#..#..#.#....###..#..#.#..#.#..#.
+###...#...#..#.#....#..#.####.#..#.####.
+#....#....#..#.#....#..#.#..#.#..#.#..#.
+#....####..##..####.###..#..#..##..#..#.
+"
+            .trim()
+        );
     }
 }
