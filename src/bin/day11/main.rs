@@ -124,11 +124,12 @@ where
     (0..rounds).for_each(|_| {
         (0..monkeys.len()).for_each(|i| {
             let monkey = &mut monkeys[i];
-            let destinations = monkey
-                .items
-                .iter()
+            monkey.inspected += monkey.items.len();
+
+            std::mem::take(&mut monkey.items)
+                .into_iter()
                 .map(|val| {
-                    let val = worry(monkey.op.compute(val));
+                    let val = worry(monkey.op.compute(&val));
                     let target = if val % monkey.test == 0 {
                         monkey.throw_true
                     } else {
@@ -136,13 +137,11 @@ where
                     };
                     (target, val)
                 })
-                .collect::<Vec<_>>();
-            monkey.inspected += monkey.items.len();
-            monkey.items.clear();
-
-            destinations.into_iter().for_each(|(target, val)| {
-                monkeys[target].items.push(val);
-            });
+                .collect::<Vec<_>>()
+                .into_iter()
+                .for_each(|(target, val)| {
+                    monkeys[target].items.push(val);
+                });
         });
     });
 
