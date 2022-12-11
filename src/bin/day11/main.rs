@@ -118,16 +118,17 @@ impl Monkey {
     }
 }
 
-fn p1(input: &str) -> String {
-    let mut monkeys = Monkey::parse_input(input);
-    (0..20).for_each(|_| {
+fn solve(mut monkeys: Vec<Monkey>, rounds: usize, worry: impl Fn(i64) -> i64) -> String
+where
+{
+    (0..rounds).for_each(|_| {
         (0..monkeys.len()).for_each(|i| {
             let monkey = &mut monkeys[i];
             let destinations = monkey
                 .items
                 .iter()
                 .map(|val| {
-                    let val = monkey.op.compute(val) / 3;
+                    let val = worry(monkey.op.compute(val));
                     let target = if val % monkey.test == 0 {
                         monkey.throw_true
                     } else {
@@ -154,42 +155,15 @@ fn p1(input: &str) -> String {
         .to_string()
 }
 
+fn p1(input: &str) -> String {
+    let monkeys = Monkey::parse_input(input);
+    solve(monkeys, 20, |val| val / 3)
+}
+
 fn p2(input: &str) -> String {
-    let mut monkeys = Monkey::parse_input(input);
+    let monkeys = Monkey::parse_input(input);
     let prime = monkeys.iter().map(|monkey| monkey.test).product::<i64>();
-
-    (0..10000).for_each(|_| {
-        (0..monkeys.len()).for_each(|i| {
-            let monkey = &mut monkeys[i];
-            let destinations = monkey
-                .items
-                .iter()
-                .map(|val| {
-                    let val = monkey.op.compute(val) % prime;
-                    let target = if val % monkey.test == 0 {
-                        monkey.throw_true
-                    } else {
-                        monkey.throw_false
-                    };
-                    (target, val)
-                })
-                .collect::<Vec<_>>();
-            monkey.inspected += monkey.items.len();
-            monkey.items.clear();
-
-            destinations.into_iter().for_each(|(target, val)| {
-                monkeys[target].items.push(val);
-            });
-        });
-    });
-
-    monkeys.sort_by(|a, b| a.inspected.cmp(&b.inspected).reverse());
-    monkeys
-        .into_iter()
-        .take(2)
-        .map(|monkey| monkey.inspected)
-        .product::<usize>()
-        .to_string()
+    solve(monkeys, 10000, |val| val % prime)
 }
 
 fn main() {
