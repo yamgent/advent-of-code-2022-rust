@@ -6,6 +6,15 @@ enum Operand {
     Old,
 }
 
+impl Operand {
+    fn get<'a>(&'a self, old: &'a i64) -> &'a i64 {
+        match self {
+            Operand::Val(val) => val,
+            Operand::Old => old,
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Operation {
     Add(Operand),
@@ -13,16 +22,10 @@ enum Operation {
 }
 
 impl Operation {
-    fn compute(&self, val: &i64) -> i64 {
+    fn compute(&self, old: &i64) -> i64 {
         match self {
-            Operation::Add(operand) => match operand {
-                Operand::Val(other) => val + other,
-                Operand::Old => val + val,
-            },
-            Operation::Mul(operand) => match operand {
-                Operand::Val(other) => val * other,
-                Operand::Old => val * val,
-            },
+            Operation::Add(operand) => old + operand.get(old),
+            Operation::Mul(operand) => old * operand.get(old),
         }
     }
 }
