@@ -9,6 +9,11 @@ struct World {
     heights: Vec<Vec<i32>>,
 }
 
+enum SourceToConsider {
+    OnlyStart,
+    AllLowest,
+}
+
 impl World {
     fn parse_input(input: &str) -> Self {
         fn find_special_position(grid: &Vec<Vec<char>>, ch: char) -> (usize, usize) {
@@ -52,7 +57,7 @@ impl World {
         }
     }
 
-    fn find_shortest(&self) -> i32 {
+    fn find_shortest(&self, source_to_consider: &SourceToConsider) -> i32 {
         let mut dist = HashMap::new();
         let mut visited = HashSet::new();
         let mut next_to_process = BinaryHeap::new();
@@ -101,11 +106,31 @@ impl World {
             results
         }
 
-        dist.insert(self.start, 0);
-        next_to_process.push(NextToProcess {
-            dist: 0,
-            coord: self.start,
-        });
+        match source_to_consider {
+            SourceToConsider::OnlyStart => {
+                dist.insert(self.start, 0);
+                next_to_process.push(NextToProcess {
+                    dist: 0,
+                    coord: self.start,
+                });
+            }
+            SourceToConsider::AllLowest => {
+                self.heights
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(row_index, row)| {
+                        row.iter()
+                            .enumerate()
+                            .filter(|(_, cell)| **cell == 0)
+                            .map(|(col_index, _)| (row_index, col_index))
+                            .collect::<Vec<_>>()
+                    })
+                    .for_each(|coord| {
+                        dist.insert(coord, 0);
+                        next_to_process.push(NextToProcess { dist: 0, coord });
+                    });
+            }
+        }
 
         while let Some(current) = next_to_process.pop() {
             if visited.contains(&current.coord) {
@@ -142,12 +167,15 @@ impl World {
 }
 
 fn p1(input: &str) -> String {
-    World::parse_input(input).find_shortest().to_string()
+    World::parse_input(input)
+        .find_shortest(&SourceToConsider::OnlyStart)
+        .to_string()
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    World::parse_input(input)
+        .find_shortest(&SourceToConsider::AllLowest)
+        .to_string()
 }
 
 fn main() {
@@ -173,12 +201,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "29");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "349");
     }
 }
