@@ -16,7 +16,7 @@ enum SourceToConsider {
 
 impl World {
     fn parse_input(input: &str) -> Self {
-        fn find_special_position(grid: &Vec<Vec<char>>, ch: char) -> (usize, usize) {
+        fn find_special_position(grid: &[Vec<char>], ch: char) -> (usize, usize) {
             grid.iter()
                 .enumerate()
                 .find_map(|row| {
@@ -33,7 +33,7 @@ impl World {
             .trim()
             .lines()
             .map(|line| line.chars().collect())
-            .collect();
+            .collect::<Vec<_>>();
 
         let start = find_special_position(&grid, 'S');
         let end = find_special_position(&grid, 'E');
@@ -143,14 +143,14 @@ impl World {
             visited.insert(current.coord);
             neighbour(self, &current.coord)
                 .into_iter()
-                .filter(|coord| !visited.contains(&coord))
+                .filter(|coord| !visited.contains(coord))
                 .filter(|coord| {
                     self.heights[coord.0][coord.1]
                         - self.heights[current.coord.0][current.coord.1].abs()
                         <= 1
                 })
                 .map(|coord| (coord, current.dist + 1))
-                .filter(|(coord, newdist)| dist.get(&coord).unwrap_or(&i32::MAX) > newdist)
+                .filter(|(coord, newdist)| dist.get(coord).unwrap_or(&i32::MAX) > newdist)
                 .collect::<Vec<_>>()
                 .into_iter()
                 .for_each(|(coord, newdist)| {
