@@ -1,31 +1,18 @@
 use std::cmp::Ordering;
 
 use serde_json::Value;
+
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
-enum OrderResult {
-    Correct,
-    Incorrect,
-    Inconclusive,
-}
-
-fn ordering_to_result(order: &Ordering) -> OrderResult {
-    match order {
-        Ordering::Less => OrderResult::Correct,
-        Ordering::Greater => OrderResult::Incorrect,
-        Ordering::Equal => OrderResult::Inconclusive,
-    }
-}
-
-fn determine_order(left: &Value, right: &Value) -> OrderResult {
+fn determine_order(left: &Value, right: &Value) -> Ordering {
     match (left, right) {
         (Value::Number(left), Value::Number(right)) => {
-            ordering_to_result(&left.as_i64().unwrap().cmp(&right.as_i64().unwrap()))
+            left.as_i64().unwrap().cmp(&right.as_i64().unwrap())
         }
         (Value::Array(left), Value::Array(right)) => {
             if let Some(result) = left.iter().zip(right.iter()).find_map(|(left, right)| {
                 let result = determine_order(left, right);
-                if matches!(result, OrderResult::Inconclusive) {
+                if matches!(result, Ordering::Equal) {
                     None
                 } else {
                     Some(result)
@@ -33,7 +20,7 @@ fn determine_order(left: &Value, right: &Value) -> OrderResult {
             }) {
                 result
             } else {
-                ordering_to_result(&left.len().cmp(&right.len()))
+                left.len().cmp(&right.len())
             }
         }
         (Value::Number(..), Value::Array(..)) => {
@@ -59,7 +46,7 @@ fn p1(input: &str) -> String {
                 serde_json::from_str(left).unwrap(),
                 serde_json::from_str(right).unwrap(),
             );
-            matches!(determine_order(&left, &right), OrderResult::Correct)
+            matches!(determine_order(&left, &right), Ordering::Less)
         })
         .map(|(index, _)| index + 1)
         .sum::<usize>()
@@ -67,8 +54,26 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut packets = input
+        .trim()
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+
+    packets.extend([
+        serde_json::from_str::<Value>("[[2]]").unwrap(),
+        serde_json::from_str::<Value>("[[6]]").unwrap(),
+    ]);
+    packets.sort_by(determine_order);
+
+    packets
+        .iter()
+        .enumerate()
+        .filter(|(_, packet)| packet.to_string() == "[[2]]" || packet.to_string() == "[[6]]")
+        .map(|(index, _)| index + 1)
+        .product::<usize>()
+        .to_string()
 }
 
 fn main() {
@@ -94,12 +99,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "140");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "20952");
     }
 }
