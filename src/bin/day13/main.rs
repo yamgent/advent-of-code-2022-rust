@@ -68,9 +68,9 @@ fn p2(input: &str) -> String {
     packets.sort_by(determine_order);
 
     packets
-        .iter()
+        .into_iter()
         .enumerate()
-        .filter(|(_, packet)| packet.to_string() == "[[2]]" || packet.to_string() == "[[6]]")
+        .filter(|(_, packet)| *packet.to_string() == *"[[2]]" || *packet.to_string() == *"[[6]]")
         .map(|(index, _)| index + 1)
         .product::<usize>()
         .to_string()
