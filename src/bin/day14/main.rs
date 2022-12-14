@@ -75,6 +75,32 @@ impl World {
         }
     }
 
+    fn add_sand_p2(&mut self) -> bool {
+        let mut position = (500, 0);
+
+        if self.rocks.contains(&position) {
+            return false;
+        }
+
+        while position.1 < self.abyss {
+            if let Some(pos) = [
+                (position.0, position.1 + 1),
+                (position.0 - 1, position.1 + 1),
+                (position.0 + 1, position.1 + 1),
+            ]
+            .into_iter()
+            .find(|pos| !self.rocks.contains(pos))
+            {
+                position = pos;
+            } else {
+                break;
+            }
+        }
+
+        self.rocks.insert(position);
+        true
+    }
+
     fn get_total_sands(&self) -> i32 {
         self.rocks.len() as i32 - self.original_rocks_count as i32
     }
@@ -87,8 +113,9 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut world = World::parse_input(&input);
+    while world.add_sand_p2() {}
+    world.get_total_sands().to_string()
 }
 
 fn main() {
@@ -114,12 +141,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "93");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "27601");
     }
 }
