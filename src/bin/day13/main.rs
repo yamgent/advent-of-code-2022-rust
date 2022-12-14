@@ -61,16 +61,17 @@ fn p2(input: &str) -> String {
         .map(|line| serde_json::from_str::<Value>(line).unwrap())
         .collect::<Vec<_>>();
 
-    packets.extend([
+    let decoders = [
         serde_json::from_str::<Value>("[[2]]").unwrap(),
         serde_json::from_str::<Value>("[[6]]").unwrap(),
-    ]);
+    ];
+    packets.extend(decoders.clone());
     packets.sort_by(determine_order);
 
     packets
         .into_iter()
         .enumerate()
-        .filter(|(_, packet)| *packet.to_string() == *"[[2]]" || *packet.to_string() == *"[[6]]")
+        .filter(|(_, packet)| packet == &decoders[0] || packet == &decoders[1])
         .map(|(index, _)| index + 1)
         .product::<usize>()
         .to_string()
