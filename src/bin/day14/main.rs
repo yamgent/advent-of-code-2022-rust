@@ -107,13 +107,13 @@ impl World {
 }
 
 fn p1(input: &str) -> String {
-    let mut world = World::parse_input(&input);
+    let mut world = World::parse_input(input);
     while world.add_sand() {}
     world.get_total_sands().to_string()
 }
 
 fn p2(input: &str) -> String {
-    let mut world = World::parse_input(&input);
+    let mut world = World::parse_input(input);
     while world.add_sand_p2() {}
     world.get_total_sands().to_string()
 }
