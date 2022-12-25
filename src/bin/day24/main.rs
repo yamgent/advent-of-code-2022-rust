@@ -5,7 +5,7 @@ use std::{
 
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Coord {
     x: usize,
     y: usize,
@@ -244,10 +244,8 @@ impl Universe {
         }
     }
 
-    fn is_valid_coord_time(&self, coord_time: &CoordTime) -> bool {
-        let coord = coord_time.coord();
-
-        if coord == self.start_position || coord == self.end_position {
+    fn is_valid_coord_at_time(&self, coord: &Coord, time: usize) -> bool {
+        if coord == &self.start_position || coord == &self.end_position {
             return true;
         }
 
@@ -256,90 +254,66 @@ impl Universe {
             return false;
         }
 
-        self.simulate_universe_until(coord_time.time());
+        self.simulate_universe_until(time);
 
         !self
             .worlds
             .borrow()
-            .get(coord_time.time())
+            .get(time)
             .unwrap()
             .blizzards_pos_cache
             .contains(&coord)
     }
-}
 
-#[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
-struct CoordTime {
-    x: usize,
-    y: usize,
-    t: usize,
-}
-
-impl CoordTime {
-    fn coord(&self) -> Coord {
-        Coord {
-            x: self.x,
-            y: self.y,
-        }
-    }
-
-    fn time(&self) -> usize {
-        self.t
-    }
-
-    fn next_step(&self, universe: &Universe) -> Vec<Self> {
+    fn next_step(&self, coord: &Coord, current_time: usize) -> Vec<Coord> {
         vec![
-            Self {
-                x: self.x - 1,
-                t: self.t + 1,
-                ..*self
+            Coord {
+                x: coord.x - 1,
+                ..*coord
             },
-            Self {
-                x: self.x + 1,
-                t: self.t + 1,
-                ..*self
+            Coord {
+                x: coord.x + 1,
+                ..*coord
             },
-            Self {
+            Coord {
                 // underflow can happen at start_position
-                y: if self.y == 0 { 0 } else { self.y - 1 },
-                t: self.t + 1,
-                ..*self
+                y: if coord.y == 0 { 0 } else { coord.y - 1 },
+                ..*coord
             },
-            Self {
-                y: self.y + 1,
-                t: self.t + 1,
-                ..*self
+            Coord {
+                y: coord.y + 1,
+                ..*coord
             },
             // waiting is a valid move
-            Self {
-                t: self.t + 1,
-                ..*self
-            },
+            *coord,
         ]
         .into_iter()
-        .filter(|coord_time| universe.is_valid_coord_time(coord_time))
+        .filter(|coord| self.is_valid_coord_at_time(coord, current_time + 1))
         .collect()
     }
 }
 
 fn find_shortest(
     universe: &Universe,
-    start_coord_time: CoordTime,
+    start_time: usize,
+    source: Coord,
     destination: Coord,
-) -> CoordTime {
-    let mut queue = vec![start_coord_time];
-    let mut visited = HashSet::from([start_coord_time]);
+) -> usize {
+    let mut time = start_time;
+    let mut queue = vec![source];
 
     while !queue.is_empty() {
         let mut new_queue = vec![];
-        let answer = queue.into_iter().find(|coord_time| {
-            if coord_time.coord() == destination {
+        let mut visited = HashSet::new();
+
+        let answer = queue.into_iter().find(|coord| {
+            if coord == &destination {
                 true
             } else {
-                let next_steps = coord_time
-                    .next_step(universe)
+                let next_steps = universe
+                    .next_step(coord, time)
                     .into_iter()
-                    .filter(|coord_time| !visited.contains(coord_time))
+                    .filter(|coord| !visited.contains(coord))
                     .collect::<Vec<_>>();
 
                 new_queue.extend(next_steps.clone().iter());
@@ -348,11 +322,12 @@ fn find_shortest(
             }
         });
 
-        if let Some(coord_time) = answer {
-            return coord_time;
+        if answer.is_some() {
+            return time;
         }
 
         queue = new_queue;
+        time += 1;
     }
 
     unreachable!("We never run out of moves, we only have too much moves.")
@@ -361,36 +336,27 @@ fn find_shortest(
 fn p1(input: &str) -> String {
     let universe = Universe::from_input(&input);
 
-    find_shortest(
-        &universe,
-        CoordTime {
-            x: universe.start_position.x,
-            y: universe.start_position.y,
-            t: 0,
-        },
-        universe.end_position,
-    )
-    .t
-    .to_string()
+    find_shortest(&universe, 0, universe.start_position, universe.end_position).to_string()
 }
 
 fn p2(input: &str) -> String {
     let universe = Universe::from_input(&input);
 
-    let first = find_shortest(
-        &universe,
-        CoordTime {
-            x: universe.start_position.x,
-            y: universe.start_position.y,
-            t: 0,
-        },
-        universe.end_position,
-    );
+    let first = find_shortest(&universe, 0, universe.start_position, universe.end_position);
 
-    let second = find_shortest(&universe, first, universe.start_position);
-    find_shortest(&universe, second, universe.end_position)
-        .t
-        .to_string()
+    let second = find_shortest(
+        &universe,
+        first,
+        universe.end_position,
+        universe.start_position,
+    );
+    find_shortest(
+        &universe,
+        second,
+        universe.start_position,
+        universe.end_position,
+    )
+    .to_string()
 }
 
 fn main() {
