@@ -265,7 +265,7 @@ impl Universe {
             .contains(&coord)
     }
 
-    fn next_step(&self, coord: &Coord, current_time: usize) -> Vec<Coord> {
+    fn next_steps(&self, coord: &Coord, current_time: usize) -> Vec<Coord> {
         vec![
             Coord {
                 x: coord.x - 1,
@@ -303,30 +303,26 @@ fn find_shortest(
     let mut queue = vec![source];
 
     while !queue.is_empty() {
-        let mut new_queue = vec![];
-        let mut visited = HashSet::new();
+        let mut visited: HashSet<Coord> = HashSet::new();
 
-        let answer = queue.into_iter().find(|coord| {
-            if coord == &destination {
-                true
-            } else {
+        if queue.iter().any(|coord| coord == &destination) {
+            return time;
+        }
+
+        queue = queue
+            .into_iter()
+            .flat_map(|coord| {
                 let next_steps = universe
-                    .next_step(coord, time)
+                    .next_steps(&coord, time)
                     .into_iter()
                     .filter(|coord| !visited.contains(coord))
                     .collect::<Vec<_>>();
 
-                new_queue.extend(next_steps.clone().iter());
-                visited.extend(next_steps.into_iter());
-                false
-            }
-        });
+                visited.extend(next_steps.clone().iter());
+                next_steps
+            })
+            .collect();
 
-        if answer.is_some() {
-            return time;
-        }
-
-        queue = new_queue;
         time += 1;
     }
 
