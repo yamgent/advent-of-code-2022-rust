@@ -85,7 +85,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
         assert_eq!(p2(ACTUAL_INPUT), "");
     }
