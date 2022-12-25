@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+};
 
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
@@ -217,7 +220,7 @@ impl World {
 }
 
 struct Universe {
-    worlds: Vec<World>,
+    worlds: RefCell<Vec<World>>,
     size: Coord,
     start_position: Coord,
     end_position: Coord,
@@ -230,18 +233,18 @@ impl Universe {
             size: world.size,
             start_position: world.start_position,
             end_position: world.end_position,
-            worlds: vec![world],
+            worlds: RefCell::new(vec![world]),
         }
     }
 
-    fn get(&mut self, time: usize) -> &World {
-        while self.worlds.len() < time + 1 {
-            self.worlds.push(self.worlds.iter().last().unwrap().step());
+    fn simulate_universe_until(&self, time: usize) {
+        while self.worlds.borrow().len() < time + 1 {
+            let next_world = self.worlds.borrow().iter().last().unwrap().step();
+            self.worlds.borrow_mut().push(next_world);
         }
-        &self.worlds[time]
     }
 
-    fn is_valid_coord_time(&mut self, coord_time: &CoordTime) -> bool {
+    fn is_valid_coord_time(&self, coord_time: &CoordTime) -> bool {
         let coord = coord_time.coord();
 
         if coord == self.start_position || coord == self.end_position {
@@ -253,8 +256,13 @@ impl Universe {
             return false;
         }
 
+        self.simulate_universe_until(coord_time.time());
+
         !self
+            .worlds
+            .borrow()
             .get(coord_time.time())
+            .unwrap()
             .blizzards_pos_cache
             .contains(&coord)
     }
@@ -279,7 +287,7 @@ impl CoordTime {
         self.t
     }
 
-    fn next_step(&self, universe: &mut Universe) -> Vec<Self> {
+    fn next_step(&self, universe: &Universe) -> Vec<Self> {
         vec![
             Self {
                 x: self.x - 1,
@@ -315,7 +323,7 @@ impl CoordTime {
 }
 
 fn find_shortest(
-    universe: &mut Universe,
+    universe: &Universe,
     start_coord_time: CoordTime,
     destination: Coord,
 ) -> CoordTime {
@@ -351,44 +359,36 @@ fn find_shortest(
 }
 
 fn p1(input: &str) -> String {
-    let mut universe = Universe::from_input(&input);
-
-    // TODO: May not need this if universe can be immutable
-    let start_position = universe.start_position;
-    let end_position = universe.end_position;
+    let universe = Universe::from_input(&input);
 
     find_shortest(
-        &mut universe,
+        &universe,
         CoordTime {
-            x: start_position.x,
-            y: start_position.y,
+            x: universe.start_position.x,
+            y: universe.start_position.y,
             t: 0,
         },
-        end_position,
+        universe.end_position,
     )
     .t
     .to_string()
 }
 
 fn p2(input: &str) -> String {
-    let mut universe = Universe::from_input(&input);
-
-    // TODO: May not need this if universe can be immutable
-    let start_position = universe.start_position;
-    let end_position = universe.end_position;
+    let universe = Universe::from_input(&input);
 
     let first = find_shortest(
-        &mut universe,
+        &universe,
         CoordTime {
-            x: start_position.x,
-            y: start_position.y,
+            x: universe.start_position.x,
+            y: universe.start_position.y,
             t: 0,
         },
-        end_position,
+        universe.end_position,
     );
 
-    let second = find_shortest(&mut universe, first, start_position);
-    find_shortest(&mut universe, second, end_position)
+    let second = find_shortest(&universe, first, universe.start_position);
+    find_shortest(&universe, second, universe.end_position)
         .t
         .to_string()
 }
@@ -544,9 +544,10 @@ mod tests {
 
     #[test]
     fn test_universe() {
-        let mut universe = Universe::from_input(SAMPLE_INPUT);
+        let universe = Universe::from_input(SAMPLE_INPUT);
+        universe.simulate_universe_until(18);
         assert_eq!(
-            universe.get(18).to_string().trim(),
+            universe.worlds.borrow().get(18).unwrap().to_string().trim(),
             r"
 #.######
 #>2.<.<#
