@@ -216,6 +216,25 @@ impl World {
     }
 }
 
+struct Universe {
+    worlds: Vec<World>,
+}
+
+impl Universe {
+    fn from_input(input: &str) -> Self {
+        Self {
+            worlds: vec![World::from_input(input)],
+        }
+    }
+
+    fn get(&mut self, time: usize) -> &World {
+        while self.worlds.len() < time + 1 {
+            self.worlds.push(self.worlds.iter().last().unwrap().step());
+        }
+        &self.worlds[time]
+    }
+}
+
 fn p1(input: &str) -> String {
     let _input = input.trim();
     "".to_string()
@@ -373,6 +392,23 @@ mod tests {
 
             assert_eq!(world.to_string().trim(), state.trim());
         });
+    }
+
+    #[test]
+    fn test_universe() {
+        let mut universe = Universe::from_input(SAMPLE_INPUT);
+        assert_eq!(
+            universe.get(18).to_string().trim(),
+            r"
+#.######
+#>2.<.<#
+#.2v^2<#
+#>..>2>#
+#<....>#
+######.#
+"
+            .trim()
+        );
     }
 
     #[test]
