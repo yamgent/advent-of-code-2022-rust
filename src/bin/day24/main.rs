@@ -1,4 +1,4 @@
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
@@ -258,46 +258,13 @@ impl Universe {
             .blizzards_pos_cache
             .contains(&coord)
     }
-
-    // TODO: Self is not necessary
-    fn calculate_cost(
-        &self,
-        coord_time: CoordTime,
-        source: &Coord,
-        destination: &Coord,
-    ) -> CoordTime {
-        let from_source_cost = (coord_time.x as i32 - source.x as i32).abs()
-            + (coord_time.y as i32 - source.y as i32).abs();
-        let to_dest_cost = -200
-            * ((coord_time.x as i32 - destination.x as i32).abs()
-                + (coord_time.y as i32 - destination.y as i32).abs());
-        let time_cost = (400 * coord_time.t * coord_time.t) as i32;
-
-        CoordTime {
-            cost: from_source_cost + to_dest_cost + time_cost,
-            ..coord_time
-        }
-    }
 }
 
 #[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
 struct CoordTime {
-    cost: i32,
     x: usize,
     y: usize,
     t: usize,
-}
-
-impl Ord for CoordTime {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost.cmp(&other.cost).reverse()
-    }
-}
-
-impl PartialOrd for CoordTime {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl CoordTime {
@@ -312,7 +279,7 @@ impl CoordTime {
         self.t
     }
 
-    fn next_step(&self, universe: &mut Universe, source: &Coord, destination: &Coord) -> Vec<Self> {
+    fn next_step(&self, universe: &mut Universe) -> Vec<Self> {
         vec![
             Self {
                 x: self.x - 1,
@@ -343,9 +310,6 @@ impl CoordTime {
         ]
         .into_iter()
         .filter(|coord_time| universe.is_valid_coord_time(coord_time))
-        .collect::<Vec<_>>()
-        .into_iter()
-        .map(|coord_time| universe.calculate_cost(coord_time, source, destination))
         .collect()
     }
 }
@@ -355,22 +319,32 @@ fn find_shortest(
     start_coord_time: CoordTime,
     destination: Coord,
 ) -> CoordTime {
-    let mut queue = BinaryHeap::from([start_coord_time]);
+    let mut queue = vec![start_coord_time];
     let mut visited = HashSet::from([start_coord_time]);
 
-    while let Some(coord_time) = queue.pop() {
-        if coord_time.coord() == destination {
+    while !queue.is_empty() {
+        let mut new_queue = vec![];
+        let answer = queue.into_iter().find(|coord_time| {
+            if coord_time.coord() == destination {
+                true
+            } else {
+                let next_steps = coord_time
+                    .next_step(universe)
+                    .into_iter()
+                    .filter(|coord_time| !visited.contains(coord_time))
+                    .collect::<Vec<_>>();
+
+                new_queue.extend(next_steps.clone().iter());
+                visited.extend(next_steps.into_iter());
+                false
+            }
+        });
+
+        if let Some(coord_time) = answer {
             return coord_time;
         }
 
-        let next_steps = coord_time
-            .next_step(universe, &start_coord_time.coord(), &destination)
-            .into_iter()
-            .filter(|coord_time| !visited.contains(coord_time))
-            .collect::<Vec<_>>();
-
-        queue.extend(next_steps.clone().iter());
-        visited.extend(next_steps.into_iter());
+        queue = new_queue;
     }
 
     unreachable!("We never run out of moves, we only have too much moves.")
@@ -389,7 +363,6 @@ fn p1(input: &str) -> String {
             x: start_position.x,
             y: start_position.y,
             t: 0,
-            cost: 0,
         },
         end_position,
     )
@@ -410,7 +383,6 @@ fn p2(input: &str) -> String {
             x: start_position.x,
             y: start_position.y,
             t: 0,
-            cost: 0,
         },
         end_position,
     );
