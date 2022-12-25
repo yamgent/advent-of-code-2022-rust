@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 const ACTUAL_INPUT: &str = include_str!("./input.txt");
 
@@ -218,12 +218,19 @@ impl World {
 
 struct Universe {
     worlds: Vec<World>,
+    size: Coord,
+    start_position: Coord,
+    end_position: Coord,
 }
 
 impl Universe {
     fn from_input(input: &str) -> Self {
+        let world = World::from_input(input);
         Self {
-            worlds: vec![World::from_input(input)],
+            size: world.size,
+            start_position: world.start_position,
+            end_position: world.end_position,
+            worlds: vec![world],
         }
     }
 
@@ -233,11 +240,139 @@ impl Universe {
         }
         &self.worlds[time]
     }
+
+    fn is_valid_coord_time(&mut self, coord_time: &CoordTime) -> bool {
+        let coord = coord_time.coord();
+
+        if coord == self.start_position || coord == self.end_position {
+            return true;
+        }
+
+        if coord.x <= 0 || coord.x >= self.size.x - 1 || coord.y <= 0 || coord.y >= self.size.y - 1
+        {
+            return false;
+        }
+
+        !self
+            .get(coord_time.time())
+            .blizzards_pos_cache
+            .contains(&coord)
+    }
+
+    fn calculate_cost(&self, coord_time: CoordTime) -> CoordTime {
+        let from_source_cost = (coord_time.x as i32 - self.start_position.x as i32).abs()
+            + (coord_time.y as i32 - self.start_position.y as i32).abs();
+        let to_dest_cost = -200
+            * ((coord_time.x as i32 - self.end_position.x as i32).abs()
+                + (coord_time.y as i32 - self.end_position.y as i32).abs());
+        let time_cost = (400 * coord_time.t * coord_time.t) as i32;
+
+        CoordTime {
+            cost: from_source_cost + to_dest_cost + time_cost,
+            ..coord_time
+        }
+    }
+}
+
+#[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
+struct CoordTime {
+    cost: i32,
+    x: usize,
+    y: usize,
+    t: usize,
+}
+
+impl Ord for CoordTime {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.cost.cmp(&other.cost).reverse()
+    }
+}
+
+impl PartialOrd for CoordTime {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl CoordTime {
+    fn coord(&self) -> Coord {
+        Coord {
+            x: self.x,
+            y: self.y,
+        }
+    }
+
+    fn time(&self) -> usize {
+        self.t
+    }
+
+    fn next_step(&self, universe: &mut Universe) -> Vec<Self> {
+        vec![
+            Self {
+                x: self.x - 1,
+                t: self.t + 1,
+                ..*self
+            },
+            Self {
+                x: self.x + 1,
+                t: self.t + 1,
+                ..*self
+            },
+            Self {
+                // underflow can happen at start_position
+                y: if self.y == 0 { 0 } else { self.y - 1 },
+                t: self.t + 1,
+                ..*self
+            },
+            Self {
+                y: self.y + 1,
+                t: self.t + 1,
+                ..*self
+            },
+            // waiting is a valid move
+            Self {
+                t: self.t + 1,
+                ..*self
+            },
+        ]
+        .into_iter()
+        .filter(|coord_time| universe.is_valid_coord_time(coord_time))
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|coord_time| universe.calculate_cost(coord_time))
+        .collect()
+    }
 }
 
 fn p1(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut universe = Universe::from_input(&input);
+
+    let start_coord_time = CoordTime {
+        x: universe.start_position.x,
+        y: universe.start_position.y,
+        t: 0,
+        cost: 0,
+    };
+
+    let mut queue = BinaryHeap::from([start_coord_time]);
+    let mut visited = HashSet::from([start_coord_time]);
+
+    while let Some(coord_time) = queue.pop() {
+        if coord_time.coord() == universe.end_position {
+            return coord_time.t.to_string();
+        }
+
+        let next_steps = coord_time
+            .next_step(&mut universe)
+            .into_iter()
+            .filter(|coord_time| !visited.contains(coord_time))
+            .collect::<Vec<_>>();
+
+        queue.extend(next_steps.clone().iter());
+        visited.extend(next_steps.into_iter());
+    }
+
+    unreachable!("We never run out of moves, we only have too much moves.")
 }
 
 fn p2(input: &str) -> String {
@@ -413,13 +548,12 @@ mod tests {
 
     #[test]
     fn test_p1_sample() {
-        assert_eq!(p1(SAMPLE_INPUT), "");
+        assert_eq!(p1(SAMPLE_INPUT), "18");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p1_actual() {
-        assert_eq!(p1(ACTUAL_INPUT), "");
+        assert_eq!(p1(ACTUAL_INPUT), "228");
     }
 
     #[test]
