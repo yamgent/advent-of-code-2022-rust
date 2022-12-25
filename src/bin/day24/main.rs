@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/24/input.txt");
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Coord {

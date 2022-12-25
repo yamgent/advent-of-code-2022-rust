@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/06/input.txt");
 
 #[allow(dead_code)]
 fn solve_naive(input: &str, distinct_count: usize) -> String {

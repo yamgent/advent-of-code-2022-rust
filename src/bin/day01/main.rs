@@ -1,6 +1,6 @@
 use std::{cmp::Reverse, collections::BinaryHeap};
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/01/input.txt");
 
 fn get_all_elves_calories(input: &str) -> Vec<i32> {
     input

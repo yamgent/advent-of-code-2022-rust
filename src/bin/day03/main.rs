@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::collections::HashSet;
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/03/input.txt");
 
 fn get_priority(ch: char) -> u32 {
     match ch {

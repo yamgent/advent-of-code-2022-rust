@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use serde_json::Value;
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/13/input.txt");
 
 fn determine_order(left: &Value, right: &Value) -> Ordering {
     match (left, right) {

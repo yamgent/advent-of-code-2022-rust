@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/09/input.txt");
 
 fn normalize(value: i32) -> i32 {
     if value == 0 {

@@ -1,4 +1,4 @@
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/04/input.txt");
 
 struct Scenario {
     first_range: (i32, i32),

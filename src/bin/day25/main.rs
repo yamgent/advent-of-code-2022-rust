@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-const ACTUAL_INPUT: &str = include_str!("./input.txt");
+const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/25/input.txt");
 
 fn from_snafu(value: &str) -> i64 {
     value.chars().fold(0, |acc, ch| {
