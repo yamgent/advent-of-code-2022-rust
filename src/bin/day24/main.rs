@@ -39,20 +39,16 @@ impl std::fmt::Display for World {
                 .iter()
                 .fold(HashMap::new(), |mut acc, entry| {
                     acc.entry(&entry.position)
-                        .and_modify(|collection| collection.push(entry.direction))
-                        .or_insert(vec![entry.direction]);
+                        .or_default()
+                        .push(entry.direction);
                     acc
                 });
 
         writeln!(
             f,
             "{}.{}",
-            std::iter::repeat('#')
-                .take(self.start_position.x)
-                .collect::<String>(),
-            std::iter::repeat('#')
-                .take(self.size.x - self.start_position.x - 1)
-                .collect::<String>()
+            "#".repeat(self.start_position.x),
+            "#".repeat(self.size.x - self.start_position.x - 1)
         )?;
         (1..(self.size.y - 1))
             .into_iter()
@@ -85,12 +81,8 @@ impl std::fmt::Display for World {
         writeln!(
             f,
             "{}.{}",
-            std::iter::repeat('#')
-                .take(self.end_position.x)
-                .collect::<String>(),
-            std::iter::repeat('#')
-                .take(self.size.x - self.end_position.x - 1)
-                .collect::<String>()
+            "#".repeat(self.end_position.x),
+            "#".repeat(self.size.x - self.end_position.x - 1)
         )?;
         Ok(())
     }
@@ -249,7 +241,7 @@ impl Universe {
             return true;
         }
 
-        if coord.x <= 0 || coord.x >= self.size.x - 1 || coord.y <= 0 || coord.y >= self.size.y - 1
+        if coord.x == 0 || coord.x >= self.size.x - 1 || coord.y == 0 || coord.y >= self.size.y - 1
         {
             return false;
         }
@@ -262,7 +254,7 @@ impl Universe {
             .get(time)
             .unwrap()
             .blizzards_pos_cache
-            .contains(&coord)
+            .contains(coord)
     }
 
     fn next_steps(&self, coord: &Coord, current_time: usize) -> Vec<Coord> {
@@ -318,7 +310,7 @@ fn find_shortest(
                     .filter(|coord| !visited.contains(coord))
                     .collect::<Vec<_>>();
 
-                visited.extend(next_steps.clone().iter());
+                visited.extend(next_steps.iter());
                 next_steps
             })
             .collect();
@@ -330,13 +322,13 @@ fn find_shortest(
 }
 
 fn p1(input: &str) -> String {
-    let universe = Universe::from_input(&input);
+    let universe = Universe::from_input(input);
 
     find_shortest(&universe, 0, universe.start_position, universe.end_position).to_string()
 }
 
 fn p2(input: &str) -> String {
-    let universe = Universe::from_input(&input);
+    let universe = Universe::from_input(input);
 
     let first = find_shortest(&universe, 0, universe.start_position, universe.end_position);
 
