@@ -259,12 +259,18 @@ impl Universe {
             .contains(&coord)
     }
 
-    fn calculate_cost(&self, coord_time: CoordTime) -> CoordTime {
-        let from_source_cost = (coord_time.x as i32 - self.start_position.x as i32).abs()
-            + (coord_time.y as i32 - self.start_position.y as i32).abs();
+    // TODO: Self is not necessary
+    fn calculate_cost(
+        &self,
+        coord_time: CoordTime,
+        source: &Coord,
+        destination: &Coord,
+    ) -> CoordTime {
+        let from_source_cost = (coord_time.x as i32 - source.x as i32).abs()
+            + (coord_time.y as i32 - source.y as i32).abs();
         let to_dest_cost = -200
-            * ((coord_time.x as i32 - self.end_position.x as i32).abs()
-                + (coord_time.y as i32 - self.end_position.y as i32).abs());
+            * ((coord_time.x as i32 - destination.x as i32).abs()
+                + (coord_time.y as i32 - destination.y as i32).abs());
         let time_cost = (400 * coord_time.t * coord_time.t) as i32;
 
         CoordTime {
@@ -306,7 +312,7 @@ impl CoordTime {
         self.t
     }
 
-    fn next_step(&self, universe: &mut Universe) -> Vec<Self> {
+    fn next_step(&self, universe: &mut Universe, source: &Coord, destination: &Coord) -> Vec<Self> {
         vec![
             Self {
                 x: self.x - 1,
@@ -339,31 +345,26 @@ impl CoordTime {
         .filter(|coord_time| universe.is_valid_coord_time(coord_time))
         .collect::<Vec<_>>()
         .into_iter()
-        .map(|coord_time| universe.calculate_cost(coord_time))
+        .map(|coord_time| universe.calculate_cost(coord_time, source, destination))
         .collect()
     }
 }
 
-fn p1(input: &str) -> String {
-    let mut universe = Universe::from_input(&input);
-
-    let start_coord_time = CoordTime {
-        x: universe.start_position.x,
-        y: universe.start_position.y,
-        t: 0,
-        cost: 0,
-    };
-
+fn find_shortest(
+    universe: &mut Universe,
+    start_coord_time: CoordTime,
+    destination: Coord,
+) -> CoordTime {
     let mut queue = BinaryHeap::from([start_coord_time]);
     let mut visited = HashSet::from([start_coord_time]);
 
     while let Some(coord_time) = queue.pop() {
-        if coord_time.coord() == universe.end_position {
-            return coord_time.t.to_string();
+        if coord_time.coord() == destination {
+            return coord_time;
         }
 
         let next_steps = coord_time
-            .next_step(&mut universe)
+            .next_step(universe, &start_coord_time.coord(), &destination)
             .into_iter()
             .filter(|coord_time| !visited.contains(coord_time))
             .collect::<Vec<_>>();
@@ -375,9 +376,49 @@ fn p1(input: &str) -> String {
     unreachable!("We never run out of moves, we only have too much moves.")
 }
 
+fn p1(input: &str) -> String {
+    let mut universe = Universe::from_input(&input);
+
+    // TODO: May not need this if universe can be immutable
+    let start_position = universe.start_position;
+    let end_position = universe.end_position;
+
+    find_shortest(
+        &mut universe,
+        CoordTime {
+            x: start_position.x,
+            y: start_position.y,
+            t: 0,
+            cost: 0,
+        },
+        end_position,
+    )
+    .t
+    .to_string()
+}
+
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut universe = Universe::from_input(&input);
+
+    // TODO: May not need this if universe can be immutable
+    let start_position = universe.start_position;
+    let end_position = universe.end_position;
+
+    let first = find_shortest(
+        &mut universe,
+        CoordTime {
+            x: start_position.x,
+            y: start_position.y,
+            t: 0,
+            cost: 0,
+        },
+        end_position,
+    );
+
+    let second = find_shortest(&mut universe, first, start_position);
+    find_shortest(&mut universe, second, end_position)
+        .t
+        .to_string()
 }
 
 fn main() {
@@ -558,12 +599,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "54");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "723");
     }
 }
