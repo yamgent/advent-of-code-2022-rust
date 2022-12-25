@@ -97,7 +97,7 @@ impl World {
             .all(|coord| !self.elves.contains(&coord))
     }
 
-    fn next_round(&mut self) {
+    fn next_round(&mut self) -> usize {
         let mut proposals: HashMap<(i32, i32), Vec<(i32, i32)>> = HashMap::new();
 
         self.elves
@@ -144,15 +144,19 @@ impl World {
                 }
             });
 
+        let mut count = 0;
+
         proposals
             .into_iter()
             .filter(|(_, elves)| elves.len() == 1)
             .for_each(|(coord, elves)| {
                 self.elves.remove(&elves[0]);
                 self.elves.insert(coord);
+                count += 1;
             });
 
         self.round += 1;
+        count
     }
 
     fn empty_tiles(&self) -> i32 {
@@ -177,8 +181,11 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let mut world = World::from_input(input);
+
+    while world.next_round() > 0 {}
+
+    world.round.to_string()
 }
 
 fn main() {
@@ -277,12 +284,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "20");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "1021");
     }
 }
