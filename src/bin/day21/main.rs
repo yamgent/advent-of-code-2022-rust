@@ -43,12 +43,24 @@ fn p1(input: &str) -> String {
     let graph = parse_graph(input);
 
     fn traverse(graph: &HashMap<&str, Job>, name: &str) -> i64 {
-        match graph.get(name).unwrap() {
+        let job = graph.get(name).unwrap();
+
+        match job {
             Job::Number(value) => *value,
-            Job::Add(left, right) => traverse(graph, left) + traverse(graph, right),
-            Job::Sub(left, right) => traverse(graph, left) - traverse(graph, right),
-            Job::Mul(left, right) => traverse(graph, left) * traverse(graph, right),
-            Job::Div(left, right) => traverse(graph, left) / traverse(graph, right),
+            Job::Add(left, right)
+            | Job::Sub(left, right)
+            | Job::Mul(left, right)
+            | Job::Div(left, right) => {
+                let left = traverse(graph, left);
+                let right = traverse(graph, right);
+                match job {
+                    Job::Add(..) => left + right,
+                    Job::Sub(..) => left - right,
+                    Job::Mul(..) => left * right,
+                    Job::Div(..) => left / right,
+                    _ => unreachable!("Already filtered"),
+                }
+            }
         }
     }
 
@@ -76,10 +88,10 @@ fn p2(input: &str) -> String {
                 if let Some(left) = calc_non_human(graph, left) {
                     if let Some(right) = calc_non_human(graph, right) {
                         return Some(match job {
-                            Job::Add(_, _) => left + right,
-                            Job::Sub(_, _) => left - right,
-                            Job::Mul(_, _) => left * right,
-                            Job::Div(_, _) => left / right,
+                            Job::Add(..) => left + right,
+                            Job::Sub(..) => left - right,
+                            Job::Mul(..) => left * right,
+                            Job::Div(..) => left / right,
                             _ => unreachable!("Already filtered"),
                         });
                     }
@@ -115,18 +127,19 @@ fn p2(input: &str) -> String {
             | Job::Sub(left, right)
             | Job::Mul(left, right)
             | Job::Div(left, right) => {
-                let left_root = calc_non_human(&graph, left);
-                let right_root = calc_non_human(&graph, right);
+                // TODO: Repeated computation
+                let left_root = calc_non_human(graph, left);
+                let right_root = calc_non_human(graph, right);
 
                 if let Some(left_value) = left_root {
                     propagate_to_humn(
                         graph,
                         right,
                         match job {
-                            Job::Add(_, _) => acc - left_value,
-                            Job::Sub(_, _) => left_value - acc,
-                            Job::Mul(_, _) => acc / left_value,
-                            Job::Div(_, _) => left_value / acc,
+                            Job::Add(..) => acc - left_value,
+                            Job::Sub(..) => left_value - acc,
+                            Job::Mul(..) => acc / left_value,
+                            Job::Div(..) => left_value / acc,
                             _ => unreachable!("Already filtered"),
                         },
                     )
@@ -135,10 +148,10 @@ fn p2(input: &str) -> String {
                         graph,
                         left,
                         match job {
-                            Job::Add(_, _) => acc - right_value,
-                            Job::Sub(_, _) => acc + right_value,
-                            Job::Mul(_, _) => acc / right_value,
-                            Job::Div(_, _) => acc * right_value,
+                            Job::Add(..) => acc - right_value,
+                            Job::Sub(..) => acc + right_value,
+                            Job::Mul(..) => acc / right_value,
+                            Job::Div(..) => acc * right_value,
                             _ => unreachable!("Already filtered"),
                         },
                     )
