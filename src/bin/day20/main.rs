@@ -20,12 +20,12 @@ fn parse_input(input: &str, decryption_key: i64) -> Vec<Node> {
         .collect::<Vec<_>>();
 
     result.get_mut(0).unwrap().prev = result.len() - 1;
-    result.iter_mut().rev().next().unwrap().next = 0;
+    result.iter_mut().last().unwrap().next = 0;
 
     result
 }
 
-fn find_zero_value_pos(list: &Vec<Node>) -> usize {
+fn find_zero_value_pos(list: &[Node]) -> usize {
     list.iter()
         .enumerate()
         .find(|(_, node)| node.value == 0)
@@ -33,7 +33,7 @@ fn find_zero_value_pos(list: &Vec<Node>) -> usize {
         .0
 }
 
-fn find_nth_value_from_zero(list: &Vec<Node>, nth: usize) -> i64 {
+fn find_nth_value_from_zero(list: &[Node], nth: usize) -> i64 {
     let nth = nth % list.len();
     let mut cur = find_zero_value_pos(list);
     for _ in 0..nth {
@@ -44,7 +44,7 @@ fn find_nth_value_from_zero(list: &Vec<Node>, nth: usize) -> i64 {
 
 // for debugging purposes
 #[allow(dead_code)]
-fn print_from_zero(list: &Vec<Node>) {
+fn print_from_zero(list: &[Node]) {
     let zero_value_node_pos = find_zero_value_pos(list);
 
     print!("0");
