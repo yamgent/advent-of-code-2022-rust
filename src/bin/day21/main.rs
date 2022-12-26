@@ -56,8 +56,107 @@ fn p1(input: &str) -> String {
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    let graph = parse_graph(input);
+
+    fn calc_non_human(graph: &HashMap<&str, Job>, name: &str) -> Option<i64> {
+        let job = graph.get(name).unwrap();
+
+        match job {
+            Job::Number(value) => {
+                if name == "humn" {
+                    None
+                } else {
+                    Some(*value)
+                }
+            }
+            Job::Add(left, right)
+            | Job::Sub(left, right)
+            | Job::Mul(left, right)
+            | Job::Div(left, right) => {
+                if let Some(left) = calc_non_human(graph, left) {
+                    if let Some(right) = calc_non_human(graph, right) {
+                        return Some(match job {
+                            Job::Add(_, _) => left + right,
+                            Job::Sub(_, _) => left - right,
+                            Job::Mul(_, _) => left * right,
+                            Job::Div(_, _) => left / right,
+                            _ => unreachable!("Already filtered"),
+                        });
+                    }
+                }
+                None
+            }
+        }
+    }
+
+    let (left, right) = match graph["root"] {
+        Job::Add(left, right)
+        | Job::Sub(left, right)
+        | Job::Mul(left, right)
+        | Job::Div(left, right) => (left, right),
+        _ => panic!("Root should have two monkeys"),
+    };
+
+    let left_root = calc_non_human(&graph, left);
+    let right_root = calc_non_human(&graph, right);
+
+    fn propagate_to_humn(graph: &HashMap<&str, Job>, name: &str, acc: i64) -> i64 {
+        let job = graph.get(name).unwrap();
+
+        match job {
+            Job::Number(..) => {
+                if name == "humn" {
+                    acc
+                } else {
+                    panic!("Should not process non-humn for this method.");
+                }
+            }
+            Job::Add(left, right)
+            | Job::Sub(left, right)
+            | Job::Mul(left, right)
+            | Job::Div(left, right) => {
+                let left_root = calc_non_human(&graph, left);
+                let right_root = calc_non_human(&graph, right);
+
+                if let Some(left_value) = left_root {
+                    propagate_to_humn(
+                        graph,
+                        right,
+                        match job {
+                            Job::Add(_, _) => acc - left_value,
+                            Job::Sub(_, _) => left_value - acc,
+                            Job::Mul(_, _) => acc / left_value,
+                            Job::Div(_, _) => left_value / acc,
+                            _ => unreachable!("Already filtered"),
+                        },
+                    )
+                } else if let Some(right_value) = right_root {
+                    propagate_to_humn(
+                        graph,
+                        left,
+                        match job {
+                            Job::Add(_, _) => acc - right_value,
+                            Job::Sub(_, _) => acc + right_value,
+                            Job::Mul(_, _) => acc / right_value,
+                            Job::Div(_, _) => acc * right_value,
+                            _ => unreachable!("Already filtered"),
+                        },
+                    )
+                } else {
+                    panic!("Either inner side should give a concrete answer.");
+                }
+            }
+        }
+    }
+
+    if let Some(left_value) = left_root {
+        propagate_to_humn(&graph, right, left_value)
+    } else if let Some(right_value) = right_root {
+        propagate_to_humn(&graph, left, right_value)
+    } else {
+        panic!("Either side should give a concrete answer.");
+    }
+    .to_string()
 }
 
 fn main() {
@@ -83,12 +182,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "301");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "3916491093817");
     }
 }
