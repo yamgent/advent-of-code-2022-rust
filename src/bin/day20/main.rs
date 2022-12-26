@@ -1,19 +1,19 @@
 const ACTUAL_INPUT: &str = include_str!("../../../actual_inputs/2022/20/input.txt");
 
 struct Node {
-    value: i32,
+    value: i64,
     next: usize,
     prev: usize,
 }
 
-fn parse_input(input: &str) -> Vec<Node> {
+fn parse_input(input: &str, decryption_key: i64) -> Vec<Node> {
     let mut result = input
         .trim()
         .lines()
-        .map(|line| line.parse::<i32>().unwrap())
+        .map(|line| line.parse::<i64>().unwrap())
         .enumerate()
         .map(|(idx, value)| Node {
-            value,
+            value: value * decryption_key,
             next: idx + 1,
             prev: if idx == 0 { 0 } else { idx - 1 },
         })
@@ -33,7 +33,7 @@ fn find_zero_value_pos(list: &Vec<Node>) -> usize {
         .0
 }
 
-fn find_nth_value_from_zero(list: &Vec<Node>, nth: usize) -> i32 {
+fn find_nth_value_from_zero(list: &Vec<Node>, nth: usize) -> i64 {
     let nth = nth % list.len();
     let mut cur = find_zero_value_pos(list);
     for _ in 0..nth {
@@ -57,45 +57,55 @@ fn print_from_zero(list: &Vec<Node>) {
     println!();
 }
 
-fn p1(input: &str) -> String {
-    let mut list = parse_input(input);
+fn decrypt(input: &str, decryption_key: i64, mix_count: usize) -> i64 {
+    let mut list = parse_input(input, decryption_key);
 
-    for i in 0..(list.len()) {
-        let prev = list[i].prev;
-        let next = list[i].next;
-
-        // remove ith node
-        list[prev].next = next;
-        list[next].prev = prev;
-
-        let mut cur = prev;
-        if list[i].value > 0 {
-            for _ in 0..list[i].value {
-                cur = list[cur].next;
+    for _ in 0..mix_count {
+        for i in 0..(list.len()) {
+            if list[i].value == 0 {
+                continue;
             }
-        } else {
-            for _ in 0..(-list[i].value) {
-                cur = list[cur].prev;
+
+            // remove ith node
+            let prev = list[i].prev;
+            let next = list[i].next;
+            list[prev].next = next;
+            list[next].prev = prev;
+
+            // find the new spot position
+            let mut cur = prev;
+            if list[i].value > 0 {
+                let steps = (list[i].value as usize) % (list.len() - 1);
+                for _ in 0..steps {
+                    cur = list[cur].next;
+                }
+            } else {
+                let steps = (-list[i].value as usize) % (list.len() - 1);
+                for _ in 0..steps {
+                    cur = list[cur].prev;
+                }
             }
+
+            // insert ith node after finding its correct position
+            let next = list[cur].next;
+            list[cur].next = i;
+            list[i].prev = cur;
+            list[next].prev = i;
+            list[i].next = next;
         }
-
-        // insert ith node after finding its correct position
-        let next = list[cur].next;
-        list[cur].next = i;
-        list[i].prev = cur;
-        list[next].prev = i;
-        list[i].next = next;
     }
 
-    (find_nth_value_from_zero(&list, 1000)
+    find_nth_value_from_zero(&list, 1000)
         + find_nth_value_from_zero(&list, 2000)
-        + find_nth_value_from_zero(&list, 3000))
-    .to_string()
+        + find_nth_value_from_zero(&list, 3000)
+}
+
+fn p1(input: &str) -> String {
+    decrypt(input, 1, 1).to_string()
 }
 
 fn p2(input: &str) -> String {
-    let _input = input.trim();
-    "".to_string()
+    decrypt(input, 811589153, 10).to_string()
 }
 
 fn main() {
@@ -121,12 +131,11 @@ mod tests {
 
     #[test]
     fn test_p2_sample() {
-        assert_eq!(p2(SAMPLE_INPUT), "");
+        assert_eq!(p2(SAMPLE_INPUT), "1623178306");
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn test_p2_actual() {
-        assert_eq!(p2(ACTUAL_INPUT), "");
+        assert_eq!(p2(ACTUAL_INPUT), "4979911042808");
     }
 }
